@@ -10,6 +10,7 @@ import Mathlib.Order.BooleanAlgebra
 import Mathlib.Data.Set.Finite
 -- import EclipJord.Affine.Module
 open MvPolynomial
+open Ideal
 open scoped Pointwise
 -- open Classical
 
@@ -33,7 +34,7 @@ instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
     exists ⊤
     ext P
     simp
-    exists C 1
+    exists 1
     simp
   isOpen_inter := by
     rintro U1 U2 ⟨I1, U1_open⟩ ⟨I2, U2_open⟩
@@ -59,60 +60,42 @@ instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
     intros Us Us_open
     simp at Us_open
     choose I_of U_eq_VIUc using Us_open
-    -- exists ⨆ U ∈ Us, I_of U (by assumption)
-    -- exists Ideal.span (⋃ U ∈ Us, ↑(I_of U (by assumption)))
-    have uU := {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us} --
-    exists Ideal.span {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us}
+    let uU := {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us}
+    exists Ideal.span uU
     rw [←compl_inj_iff, compl_compl, Set.compl_sUnion Us]
     ext P; simp; constructor
     intros P_not_in_any_U f f_in_SumU
-    -- conv at f_in_SumU => {
-    --   rw [Ideal.mem_span]
-    --   enter [I]
-    --   simp
-    --   enter [U1]
-    --   -- arg 2
-    --   -- rw [Ideal.span_iUnion]
-    --   -- congr
-    --   -- enter [U]
-    --   -- rw [Ideal.span_iUnion]
-    --   -- congr
-    --   -- enter [in_Us]
-    -- }
-
     conv at P_not_in_any_U => {
       enter [U, in_Us]
       rw [U_eq_VIUc U in_Us]
       simp
       enter [g]
     }
-
-    -- have : Ideal.map (eval P) (Ideal.span {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us})
-    --   = Ideal.span (⇑(eval P) '' {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us})
-    -- := Ideal.map_span (eval P) {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us}
-
-    have fP_in : (eval P) f ∈ Ideal.map (eval P) (Ideal.span {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us})
+    have fP_in : (eval P) f ∈ Ideal.map (eval P) (Ideal.span uU)
     := Ideal.mem_map_of_mem (eval P) f_in_SumU
     conv at fP_in => {
-      rw [Ideal.map_span (eval P) {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us}]
+      rw [Ideal.map_span (eval P) uU]
       arg 2
       congr
       simp [Set.image]
     }
-    have : {x | ∃ g, (∃ U, ∃ (in_Us : U ∈ Us), g ∈ I_of U in_Us) ∧ (eval P) g = x} ⊆ { 0 }
+    have : Ideal.span {x | ∃ g ∈ uU, (eval P) g = x} = ⊥
     := by
+      simp [uU]
+      rw [le_antisymm_iff, Ideal.span_le]
       simp
       intros Q g U in_Us in_IU gP_isQ
       rw [←gP_isQ, P_not_in_any_U U in_Us g in_IU]
-      -- ext Q; simp; constructor
-      -- rintro ⟨g, ⟨⟨U, ⟨in_Us, in_IU⟩⟩, gP_isQ⟩⟩
-      -- rw [←gP_isQ, P_not_in_any_U U in_Us g in_IU]
-      -- intro Q_is0
-      -- exists 0
-      -- simp [Q_is0]
-    have : Ideal.span {x | ∃ g, (∃ U, ∃ (in_Us : U ∈ Us), g ∈ I_of U in_Us) ∧ (eval P) g = x} = ⊥
-    := by
-      simp
+    simp [this] at fP_in
+    exact fP_in
+    -------------------------
+    intros uUP_is0 U in_Us
+    rw [U_eq_VIUc U in_Us]; simp
+    intros f in_IU
+    have in_uU : f ∈ uU := by simp [uU]; exists U, in_Us
+    have : uU ⊆ span uU := subset_span
+    rw [Set.subset_def] at this
+    exact uUP_is0 f (this f in_uU)
 
 
     -- rintro ⟨U, ⟨in_Us, P_in_U⟩⟩
