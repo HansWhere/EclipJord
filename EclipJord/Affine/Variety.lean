@@ -12,7 +12,6 @@ import Mathlib.Data.Set.Finite
 open MvPolynomial
 open Ideal
 open scoped Pointwise
--- open Classical
 
 abbrev 𝔸 (R : Type ℓ) [Ring R] (n : ℕ) : Type ℓ := Fin n → R
 
@@ -43,17 +42,17 @@ instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
     ext P; simp; constructor
     rintro ⟨⟨f1, ⟨f1_in_I1, P_notin_V1⟩⟩, ⟨f2, ⟨f2_in_I2, P_notin_V2⟩⟩⟩
     exists f1 * f2
-    simp [Ideal.mul_mem_mul f1_in_I1 f2_in_I2, P_notin_V1, P_notin_V2]
+    simp [mul_mem_mul f1_in_I1 f2_in_I2, P_notin_V1, P_notin_V2]
     rintro ⟨f, ⟨f_in_I1I2, P_notin_V⟩⟩
     constructor
     exists f
     constructor
-    apply Ideal.mul_le_right
+    apply mul_le_right
     exact f_in_I1I2
     exact P_notin_V
     exists f
     constructor
-    apply Ideal.mul_le_left
+    apply mul_le_left
     exact f_in_I1I2
     exact P_notin_V
   isOpen_sUnion := by
@@ -61,7 +60,7 @@ instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
     simp at Us_open
     choose I_of U_eq_VIUc using Us_open
     let uU := {f | ∃ U, ∃ in_Us : U ∈ Us, f ∈ I_of U in_Us}
-    exists Ideal.span uU
+    exists span uU
     rw [←compl_inj_iff, compl_compl, Set.compl_sUnion Us]
     ext P; simp; constructor
     intros P_not_in_any_U f f_in_SumU
@@ -71,18 +70,18 @@ instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
       simp
       enter [g]
     }
-    have fP_in : (eval P) f ∈ Ideal.map (eval P) (Ideal.span uU)
-    := Ideal.mem_map_of_mem (eval P) f_in_SumU
+    have fP_in : (eval P) f ∈ map (eval P) (span uU)
+    := mem_map_of_mem (eval P) f_in_SumU
     conv at fP_in => {
-      rw [Ideal.map_span (eval P) uU]
+      rw [map_span (eval P) uU]
       arg 2
       congr
       simp [Set.image]
     }
-    have : Ideal.span {x | ∃ g ∈ uU, (eval P) g = x} = ⊥
+    have : span {x | ∃ g ∈ uU, (eval P) g = x} = ⊥
     := by
       simp [uU]
-      rw [le_antisymm_iff, Ideal.span_le]
+      rw [le_antisymm_iff, span_le]
       simp
       intros Q g U in_Us in_IU gP_isQ
       rw [←gP_isQ, P_not_in_any_U U in_Us g in_IU]

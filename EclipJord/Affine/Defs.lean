@@ -48,8 +48,6 @@ def zero : 𝔸 R n :=
 def nsmul (k : ℕ) (xs : 𝔸 R n) : 𝔸 R n :=
   λ m ↦ k * xs m
 
-def nonzero (M : Type ℓ) [AddCommMonoid M] : Type ℓ := {x : M // x ≠ 0}
-
 instance [DecidableEq R] : DecidableEq (𝔸 R n) := by
   simp [𝔸]
   intros xs ys
