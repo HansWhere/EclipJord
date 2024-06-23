@@ -2,7 +2,6 @@
 import Mathlib.Algebra.Ring.Rat
 import Mathlib.Algebra.Module.Defs
 import Mathlib.Algebra.Field.Defs
-import Lean
 
 variable {n : ℕ}
 variable {R : Type ℓ} [Ring R]
