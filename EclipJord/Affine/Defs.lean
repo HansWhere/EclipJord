@@ -103,3 +103,7 @@ instance : Module R (𝔸 R n) where
     simp
 
 #check (inferInstance : Module R (𝔸 R n))
+
+variable [Group G]
+
+end 𝔸

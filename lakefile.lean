@@ -9,7 +9,7 @@ package «EclipJord» where
   -- add any additional package configuration options here
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git"
+  "https://github.com/leanprover-community/mathlib4.git" @ "ACLMIdFF-Homogeneous"
 
 @[default_target]
 lean_lib «EclipJord» where

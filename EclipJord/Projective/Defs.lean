@@ -68,3 +68,5 @@ example : ℙ ℚ 3 := ℙ.of ⟨⟪3,2-2,3/2,2.1⟫, by decide⟩
 -- (why tactic 'decide' failed?)
 
 example : ℙ ℚ 3 := ℙ.of ⟨⟪0,2,3,2⟫, by decide⟩
+
+end ℙ

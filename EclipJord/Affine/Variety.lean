@@ -3,11 +3,10 @@ import Mathlib.Algebra.Polynomial.Eval
 import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.RingTheory.Polynomial.Basic
 import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Field.Defs
 import Mathlib.Topology.Basic
-import Mathlib.Order.BooleanAlgebra
 import Mathlib.Data.Set.Finite
 import EclipJord.Affine.Defs
+-- import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
 open MvPolynomial
 open Ideal
 open scoped Pointwise
@@ -18,12 +17,14 @@ namespace 𝔸
 variable {n : ℕ}
 variable {K : Type ℓ} [Field K]
 
+-- abbrev K_cl := AlgebraicClosure K
+
 scoped[MvPolynomial] notation:9000 R "[X,..]" n => MvPolynomial (Fin n) R
 
 abbrev 𝕍 (I : Ideal K[X,..]n) : Set (𝔸 K n)
 := { P : 𝔸 K n | ∀ f ∈ I, eval P f = 0}
 
-instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
+instance zariski_topology [DecidableEq K] : TopologicalSpace (𝔸 K n) where
   IsOpen U := ∃ I : Ideal K[X,..]n, U = (𝕍 I)ᶜ
   isOpen_univ := by
     simp [𝕍]
@@ -96,3 +97,28 @@ instance zariski_topology [DecidableEq K]  : TopologicalSpace (𝔸 K n) where
 #check Set.toFinset
 
 #check (X 0 ^ 2 + X 1 + 1 : MvPolynomial (Fin 2) ℚ)
+
+-- def AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Set (Set (𝔸 K n))
+-- := { V | ∃ I : Ideal K[X,..]n, V = 𝕍 I }
+
+-- structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
+--   V : Set (𝔸 K n)
+--   I : Ideal K[X,..]n
+--   algebraic : V = 𝕍 I
+
+structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
+  V : Set (𝔸 K n)
+  is_algebraic : ∃ I : Ideal K[X,..]n, V = 𝕍 I
+
+structure Variety (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
+  V : Set (𝔸 K n)
+  is_prime : ∃ I : Ideal K[X,..]n, IsPrime I ∧ V = 𝕍 I
+
+def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
+  V := A.V
+  is_algebraic := Exists.elim A.is_prime $ by
+    rintro I0 ⟨_, h⟩
+    exists I0
+}
+
+-- def 𝕀 (V : AlgSet) : Ideal K[X,..]n := {f : K[X,..]n | }
