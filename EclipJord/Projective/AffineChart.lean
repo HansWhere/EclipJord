@@ -54,13 +54,15 @@ theorem ℙ.to𝔸_uniq (j : Fin n.succ) (P : ℙ K n) (h : P.ne0_at j)
   simp [eq, 𝔸.no0.collinear] at P₁'_inP
   rcases P₁'_inP with ⟨k, kh, P₁_eq_kP₂⟩
   simp [HSMul.hSMul, SMul.smul, 𝔸.no0.smul'] at P₁_eq_kP₂
-  simp [P₁h, P₂h]
+  simp only [P₁h, P₂h]
   apply funext
   intro i
-  cases Nat.lt_trichotomy i j with
-  | inl ijh =>
-    simp [ijh]
-  | inr (inl ijh) => sorry
+  if ijh : i.1 < j.1 then
+  . simp only [ijh, P₁_eq_kP₂, mul_div_mul_left _ _ kh]
+  else if ijh' : i.1 = j.1 then
+  . simp only [ijh', P₁_eq_kP₂, mul_div_mul_left _ _ kh]
+  else
+  . simp only [ijh, ijh', P₁_eq_kP₂, mul_div_mul_left _ _ kh]
 
 -- def ℙ.to𝔸 {n : ℕ} (j : Fin n.succ) (P : ℙ K n) (h : P.ne0_at j) (P₀ : no0 (𝔸 K n.succ)) (Ph : ℙ.mk P₀ = P) : Set (𝔸 K n)
 
