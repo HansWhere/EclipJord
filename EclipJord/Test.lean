@@ -1,30 +1,16 @@
-import Mathlib.Algebra.Polynomial.Eval
-import Mathlib.RingTheory.Polynomial.Basic
+def mp : (A ∨ B) → (A → B) → B
+  | .inl a => λ f ↦ f a
+  | .inr b => λ _ ↦ b
 
-open MvPolynomial
-open Ideal
+def mpr [Decidable A] [Decidable B] : ((A → B) → B) → (A ∨ B) := by
+  intro f
+  rw [
+    Decidable.imp_iff_not_or,
+    Decidable.imp_iff_not_or,
+    not_or,
+    and_or_right,
+    Decidable.not_not
+  ] at f
+  exact f.1
 
-noncomputable section
-variable {K : Type ℓ} [Field K]
-
-abbrev 𝕍 (I : Ideal (MvPolynomial (Fin n) K)) : Set (Fin n → K)
-:= { P : (Fin n → K) | ∀ f ∈ I, eval P f = 0}
-
-structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
-  V : Set (Fin n → K)
-  is_algebraic : ∃ I : Ideal (MvPolynomial (Fin n) K), V = 𝕍 I
-
-structure Variety (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
-  V : Set (Fin n → K)
-  is_prime : ∃ I : Ideal (MvPolynomial (Fin n) K), IsPrime I ∧ V = 𝕍 I
-
-def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
-  V := A.V
-  is_algebraic := Exists.elim A.is_prime $ by
-    rintro I0 ⟨_, h⟩
-    exists I0
-}
-
-inductive 𝕊1 : Type where
-| base : 𝕊1
-| loop : base = base
+def f
