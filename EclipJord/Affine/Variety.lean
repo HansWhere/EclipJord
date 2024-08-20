@@ -122,3 +122,4 @@ def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
 }
 
 -- def 𝕀 (V : AlgSet) : Ideal K[X,..]n := {f : K[X,..]n | }
+end 𝔸

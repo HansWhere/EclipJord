@@ -35,17 +35,17 @@ macro_rules
 
 example : 𝔸 ℚ 3 := ⟪1.5,2,3⟫
 
-def add (xs : 𝔸 R n) (ys : 𝔸 R n) : 𝔸 R n :=
-  λ m ↦ xs m + ys m
+-- def add' (xs : 𝔸 R n) (ys : 𝔸 R n) : 𝔸 R n :=
+--   λ m ↦ xs m + ys m
 
-def smul (x : R) (xs : 𝔸 R n) : 𝔸 R n :=
-  λ m ↦ x * xs m
+-- def smul' (r : R) (xs : 𝔸 R n) : 𝔸 R n :=
+--   λ m ↦ r * xs m
 
-def zero : 𝔸 R n :=
-  λ _ ↦ 0
+-- def zero' : 𝔸 R n :=
+--   λ _ ↦ 0
 
-def nsmul (k : ℕ) (xs : 𝔸 R n) : 𝔸 R n :=
-  λ m ↦ k * xs m
+-- def nsmul' (k : ℕ) (xs : 𝔸 R n) : 𝔸 R n :=
+--   λ m ↦ k * xs m
 
 instance [DecidableEq R] : DecidableEq (𝔸 R n) := by
   simp [𝔸]
@@ -63,20 +63,25 @@ instance [DecidableEq R] : DecidableEq (𝔸 R n) := by
     else
       left
       intro xs_eq_ys
-      apply congr_arg cdr at xs_eq_ys
+      apply congrArg cdr at xs_eq_ys
       contradiction
   else
     left
     intro xs_eq_ys
-    have := congr_fun xs_eq_ys 0
+    have := congrFun xs_eq_ys 0
     contradiction
 
 example : [1, 2, 3] ≠ [3, 2, 1] := by decide
 
-example : (⟪3, 2, 1⟫ : 𝔸 ℚ 3) ≠ 𝔸.zero := by decide
+example : (⟪3, 2, 1⟫ : 𝔸 ℚ 3) ≠ Zero.zero := by decide
+
+-- instance : SMul R (𝔸 R n) where
+--   smul r xs := λ m ↦ r * xs m
+
+#eval (3 • (⟪3, 2, 1⟫ : 𝔸 ℚ 3)) 0
 
 instance : Module R (𝔸 R n) where
-  smul := smul
+  smul := SMul.smul
   one_smul := by
     intro
     funext
@@ -101,8 +106,6 @@ instance : Module R (𝔸 R n) where
     intro
     funext
     simp
-
-#check (inferInstance : Module R (𝔸 R n))
 
 variable [Group G]
 
