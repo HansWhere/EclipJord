@@ -1,16 +1,15 @@
-def mp : (A ∨ B) → (A → B) → B
-  | .inl a => λ f ↦ f a
-  | .inr b => λ _ ↦ b
+import Mathlib.Algebra.BigOperators.Fin
+import Mathlib.Tactic.Ring.RingNF
 
-def mpr [Decidable A] [Decidable B] : ((A → B) → B) → (A ∨ B) := by
-  intro f
-  rw [
-    Decidable.imp_iff_not_or,
-    Decidable.imp_iff_not_or,
-    not_or,
-    and_or_right,
-    Decidable.not_not
-  ] at f
-  exact f.1
-
-def f
+example (n : ℕ) : 6*(∑ ⟨i,_⟩ : Fin (n+1), i*(2*i+1)) = n*(n+1)*(4*n+5) := by
+  induction n
+  simp
+  case succ n ih
+  . rw [
+      show (∑ ⟨i,_⟩ : Fin (n+2), i*(2*i + 1))
+          = (∑ ⟨i,_⟩ : Fin (n+1), i*(2*i + 1)) + (n+1)*(2*(n+1) + 1) by
+        rw [Fin.sum_univ_castSucc]
+        congr,
+      mul_add, ih
+    ]
+    ring_nf

@@ -1,8 +1,11 @@
 import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Algebra.Polynomial.Eval
 import Mathlib.RingTheory.Ideal.Operations
+import Mathlib.RingTheory.Ideal.Basic
 import Mathlib.RingTheory.MvPolynomial.Homogeneous
 import Mathlib.RingTheory.GradedAlgebra.HomogeneousIdeal
+import Mathlib.RingTheory.GradedAlgebra.Radical
+import Mathlib.RingTheory.Ideal.Quotient
 -- import Mathlib.RingTheory.GradedAlgebra.Basic
 import Mathlib.RingTheory.Polynomial.Basic
 -- import Mathlib.Algebra.DirectSum.Decomposition
@@ -21,7 +24,7 @@ open Ideal
 -- open DirectSum
 -- open scoped Pointwise
 
-variable {K : Type ℓ} [Field K]
+variable {n : ℕ} {K : Type ℓ} [Field K]
 
 noncomputable section
 scoped[MvPolynomial] notation:9000 R "[X,..]" n "homo" => (homogeneousSubmodule (Fin n) R)
@@ -148,16 +151,14 @@ instance : DirectSum.Decomposition (K[X,..]n homo) where
     rw [MvPolynomial.ext_iff]
     intro m
     sorry
-    -- simp [coeff, DirectSum.coeAddMonoidHom, MvPolynomial.sum_homogeneousComponent]
   right_inv := sorry
 
 instance : GradedRing (K[X,..]n homo) where
 
+end ℙ
+
 #check (inferInstance : DirectSum.Decomposition K[X,..]n homo)
 #check (inferInstance : GradedRing K[X,..]n homo)
-
-def 𝕍 (I : HomogeneousIdeal K[X,..] n+1 homo) : Set (ℙ K n)
-:= { P : ℙ K n | ∀ f ∈ I, P.vanish f}
 
 -- x^2-1 ∈ 𝕞? [1 : 0]
 -- 1
@@ -192,6 +193,133 @@ def 𝕍 (I : HomogeneousIdeal K[X,..] n+1 homo) : Set (ℙ K n)
 --       exact kP₀h
 -- }
 
+-- class Algebraic (V : Set (ℙ K n)) : Prop :=
+--   is_algebraic : ∃ I : HomogeneousIdeal (K[X,..] n+1 homo), V = 𝕍 I
+
+abbrev HomogeneousIdeal.zero_locus (I : HomogeneousIdeal K[X,..] n+1 homo) : Set (ℙ K n)
+:= { P : ℙ K n | ∀ f ∈ I, P.vanish f}
+
+namespace ℙ
+
+structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
+  carrier : Set (ℙ K n)
+  gen_by_ideal : ∃ I : HomogeneousIdeal (K[X,..] n+1 homo), I.zero_locus = carrier
+
+namespace AlgSet
+
+instance : SetLike (AlgSet K n) (ℙ K n) :=
+  ⟨carrier, λ p q ↦ by cases p; cases q; congr!⟩
+
+@[simp]
+lemma mem_carrier {p : AlgSet K n} : x ∈ p.carrier ↔ x ∈ (p : Set (ℙ K n)) := Iff.rfl
+
+@[ext]
+theorem ext {p q : AlgSet K n} (h : ∀ x, x ∈ p ↔ x ∈ q) : p = q := SetLike.ext h
+
+protected def copy (p : AlgSet K n) (s : Set (ℙ K n)) (hs : s = ↑p) : AlgSet K n :=
+  { carrier := s
+    gen_by_ideal := hs.symm ▸ p.gen_by_ideal }
+
+@[simp] lemma coe_copy (p : AlgSet K n) (s : Set (ℙ K n)) (hs : s = ↑p) :
+  (p.copy s hs : Set (ℙ K n)) = s := rfl
+
+lemma copy_eq (p : AlgSet K n) (s : Set (ℙ K n)) (hs : s = ↑p) : p.copy s hs = p :=
+  SetLike.coe_injective hs
+
+end AlgSet
+
+def 𝕍 (I : HomogeneousIdeal (K[X,..] n+1 homo)) : AlgSet K n := ⟨I.zero_locus, by exists I⟩
+
+structure Variety (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
+  carrier : Set (ℙ K n)
+  gen_by_prime : ∃ I : HomogeneousIdeal (K[X,..] n+1 homo),
+    I.toIdeal.IsPrime ∧ 𝕍 I = carrier
+
+namespace Variety
+
+def toAlgSet (V : Variety K n) : AlgSet K n := {
+  carrier := V.carrier
+  gen_by_ideal := Exists.elim V.gen_by_prime $ by
+    rintro I₀ ⟨_, h⟩
+    exists I₀
+}
+
+instance : SetLike (Variety K n) (ℙ K n) :=
+  ⟨carrier, λ p q ↦ by cases p; cases q; congr!⟩
+
+@[simp]
+lemma mem_carrier {p : Variety K n} : x ∈ p.carrier ↔ x ∈ (p : Set (ℙ K n)) := Iff.rfl
+
+@[ext]
+theorem ext {p q : Variety K n} (h : ∀ x, x ∈ p ↔ x ∈ q) : p = q := SetLike.ext h
+
+protected def copy (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) : Variety K n :=
+  { carrier := s
+    gen_by_prime := hs.symm ▸ p.gen_by_prime }
+
+@[simp] lemma coe_copy (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) :
+  (p.copy s hs : Set (ℙ K n)) = s := rfl
+
+lemma copy_eq (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) : p.copy s hs = p :=
+  SetLike.coe_injective hs
+
+def singleton (P : ℙ K n) : Variety K n := {
+  carrier := {P}
+  gen_by_prime := by
+    let fs := {f : K[X,..]n+1
+      | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
+      ∧ ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → eval P₀ f = 0}
+    exists HomogeneousIdeal.mk (Ideal.span fs) $ by
+      apply Ideal.homogeneous_span
+      simp [SetLike.Homogeneous, fs]
+      intro _ i _ _
+      exists i
+    simp only [fs, HomogeneousIdeal.toIdeal, 𝕍]
+    constructor
+    rw [isPrime_iff]
+    constructor
+    . rw [ne_top_iff_one, ←submodule_span_eq, mem_span_set']
+      push_neg
+      intro m ks fs' h
+      -- have contrad : @Eq K 0 1 := by
+      have ctr := congr_arg (eval P.out.1) h
+      simp at ctr
+      conv at ctr =>
+        congr
+        tactic =>
+          apply Fintype.sum_congr
+          intro i
+          have fsh := (fs' i).2
+          dsimp at fsh
+          rcases fsh with ⟨fsh1, fsh21, fsh22⟩
+        conv =>
+          arg 2
+          simp [fsh22 P.out (Quotient.out_eq P)]
+        rw [mul_zero]
+      rw [Fintype.sum_eq_zero] at ctr
+      apply @zero_ne_one K
+      exact ctr
+      intro
+      trivial
+    . intro f g fgh
+      rw [or_iff_not_imp_left]
+      intro fnh
+      sorry
+    . sorry
+}
+
+end Variety
+
+def 𝕀 (V : AlgSet K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
+  let fs := {f : K[X,..]n+1
+    | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
+    ∧ ∀ P ∈ V, ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → eval P₀ f = 0}
+  HomogeneousIdeal.mk (Ideal.span fs) $ by
+    apply Ideal.homogeneous_span
+    simp [SetLike.Homogeneous, fs]
+    intro _ i _ _
+    exists i
+
 def 𝕞 (P : ℙ K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
   let fs := {f : K[X,..]n+1
     | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
@@ -202,66 +330,69 @@ def 𝕞 (P : ℙ K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
     intro _ i _ _
     exists i
 
--- p = max(S)
--- M(p, S)
-
-#check HomogeneousIdeal.mk
-
-structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
-  V : Set (ℙ K n)
-  is_algebraic : ∃ I : HomogeneousIdeal (K[X,..] n+1 homo), V = 𝕍 I
-
-structure Variety (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
-  V : Set (ℙ K n)
-  is_prime : ∃ I : HomogeneousIdeal (K[X,..] n+1 homo), IsPrime I.toIdeal ∧ V = 𝕍 I
-
-def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
-  V := A.V
-  is_algebraic := Exists.elim A.is_prime $ by
-    rintro I0 ⟨_, h⟩
-    exists I0
-}
-
-def singleton (P : ℙ K n) : AlgSet K n := {
-  V := {P}
-  is_algebraic := by
-    exists 𝕞 P
-    ext P1
-    simp [𝕍, 𝕞]
-    simp [←HomogeneousIdeal.mem_iff, HomogeneousIdeal.toIdeal, vanish]
-    simp only [Ideal.span, mem_span_set']
-    constructor
-    . intro Ph g ⟨d, ks, fs, sum_eq_g⟩
-      rw [Ph]
-      have fsh : ∀ i : Fin d, ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → (eval P₀.1) (fs i) = 0 := by
-        intro i P₀ P₀h
-        exact (fs i).2.2 P₀.1 P₀.2 P₀h
-      intro P₀ P₀_ne0 P₀_in_P
-      simp [←sum_eq_g, eval_sum, smul_eval]
-      apply Fintype.sum_eq_zero
-      intro i
-      apply mul_eq_zero_of_right
-      apply (fs i).2.2 P₀ P₀_ne0 P₀_in_P
-    . intro fh
-      sorry
+-- def singleton (P : ℙ K n) : AlgSet K n := {
+--   V := {P}
+--   is_algebraic := by
+--     exists 𝕞 P
+--     ext P1
+--     simp [𝕍, 𝕞]
+--     simp [←HomogeneousIdeal.mem_iff, HomogeneousIdeal.toIdeal, vanish]
+--     simp only [Ideal.span, mem_span_set']
+--     constructor
+--     . intro Ph g ⟨d, ks, fs, sum_eq_g⟩
+--       rw [Ph]
+--       have fsh : ∀ i : Fin d, ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → (eval P₀.1) (fs i) = 0 := by
+--         intro i P₀ P₀h
+--         exact (fs i).2.2 P₀.1 P₀.2 P₀h
+--       intro P₀ P₀_ne0 P₀_in_P
+--       simp [←sum_eq_g, eval_sum, smul_eval]
+--       apply Fintype.sum_eq_zero
+--       intro i
+--       apply mul_eq_zero_of_right
+--       apply (fs i).2.2 P₀ P₀_ne0 P₀_in_P
+--     . intro fh
+--       sorry
     -- conv =>
     --   congr
     --   tactic =>
     --     apply Fintype.sum_congr
     --     intro i
     --   simp only [smul_eval]
-}
+-- }
 
--- def 𝕞 (P : ℙ K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
+theorem canc_𝕍𝕀 (V : AlgSet K n) : 𝕍 (𝕀 V) = V := by
+  ext P₁
+  dsimp [𝕍, 𝕀]
+  rcases V with ⟨V, I, VIh⟩
+  simp [HomogeneousIdeal.zero_locus, Set.ext_iff] at VIh
+  constructor
+  . intro P₁h
+    show P₁ ∈ V
+    rw [←(VIh P₁)]
+    intro g gh
+    apply P₁h
+    show g ∈ span _
+    sorry
 
-def 𝕀 (V : AlgSet K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
-  let fs := {f : K[X,..]n+1
-    | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
-    ∧ ∀ P ∈ V.1, ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → eval P₀ f = 0}
-  HomogeneousIdeal.mk (Ideal.span fs) $ by
-    apply Ideal.homogeneous_span
-    simp [SetLike.Homogeneous, fs]
-    intro _ i _ _
-    exists i
+  -- . rw [←not_imp_not]
+  --   simp [HomogeneousIdeal.zero_locus, .∈., Set.Mem, SetLike.coe,
+  --     setOf, HomogeneousIdeal.toIdeal]
+  --   -- simp [HomogeneousIdeal.zero_locus, .∈., Set.Mem, SetLike.coe] --...
+  --   -- push_neg
+  --   intro Ph
+  --   exists sorry
+
+  sorry
+
+theorem canc_𝕀𝕍 (I : HomogeneousIdeal (K[X,..] n+1 homo)) : 𝕀 (𝕍 I) = I.radical := by
+  sorry
+
+abbrev AlgSet.coord_ring (V : AlgSet K n) : Type ℓ :=
+  (K[X,..]n + 1) ⧸ (𝕀 V).toIdeal
+
+-- def AlgSet.𝕞 (V : AlgSet K n) (P : ℙ K n) (Ph : P ∈ V.1)
+
+abbrev Variety.coord_ring (V : Variety K n) : Type ℓ :=
+  V.toAlgSet.coord_ring
 
 end ℙ

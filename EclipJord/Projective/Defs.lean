@@ -61,6 +61,7 @@ theorem mul_comm' : ∀ (a b : no0 K), mul' a b = mul' b a := by
   intro a b
   simp only [mul', mul_comm]
 
+@[default_instance]
 instance : CommGroup (no0 K) where
   mul := mul'
   mul_assoc := mul_assoc'
@@ -71,6 +72,7 @@ instance : CommGroup (no0 K) where
   mul_left_inv := mul_left_inv'
   mul_comm := mul_comm'
 
+@[simp]
 def smul' (k : no0 K) (P: no0 (𝔸 K n)) : no0 (𝔸 K n) := ⟨ k.1 • P.1, by
   intro kPh
   rw [smul_eq_zero] at kPh
@@ -88,11 +90,13 @@ theorem mul_smul' : ∀ (x y : no0 K) (b : no0 (𝔸 K n))
   intro ⟨x, xh⟩ ⟨y, yh⟩ ⟨b, bh⟩
   simp only [smul', mul', mul_smul]
 
+@[default_instance]
 instance : MulAction (no0 K) (no0 (𝔸 K n)) where
   smul := smul'
   one_smul := one_smul'
   mul_smul := mul_smul'
 
+@[simp]
 abbrev collinear : no0 (𝔸 K n) → no0 (𝔸 K n) → Prop
 | xs, ys => ∃ k : no0 K, xs = k • ys
 
@@ -118,6 +122,7 @@ theorem trans' {xs ys zs : no0 (𝔸 K n)}
   rw [mul_smul, ←h2]
   exact h1
 
+@[default_instance]
 instance eqv {n : ℕ} : Setoid (no0 (𝔸 K n)) where
   r := collinear
   iseqv := {
@@ -145,11 +150,13 @@ namespace ℙ
 
 notation "𝔸≃" => 𝔸.no0.collinear.eqv
 
-def mk : no0 (𝔸 K n.succ) → ℙ K n
+abbrev mk : no0 (𝔸 K n.succ) → ℙ K n
 := Quotient.mk (𝔸≃ : Setoid (no0 (𝔸 K n.succ)))
 
-theorem eq (P₁ P₂ : no0 (𝔸 K n.succ)) : mk P₁ = mk P₂ ↔ 𝔸.no0.collinear P₁ P₂ := by
-  simp only [mk, @Quotient.eq (no0 (𝔸 K n.succ)) 𝔸.no0.collinear.eqv, HasEquiv.Equiv, Setoid.r]
+@[simp]
+theorem eq_iff (P₁ P₂ : no0 (𝔸 K n.succ))
+: @Quotient.mk _ 𝔸≃ P₁ = ⟦P₂⟧ ↔ 𝔸.no0.collinear P₁ P₂ := by
+  simp only [@Quotient.eq (no0 (𝔸 K n.succ)), 𝔸.no0.collinear.eqv, .≈.]
 
 example : [1, 2, 3] ≠ [3, 2, 1] := by decide
 
