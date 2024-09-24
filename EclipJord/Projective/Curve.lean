@@ -5,8 +5,9 @@ variable {n : ℕ} {K : Type ℓ} [Field K]
 namespace ℙ
 
 structure Curve (K : Type ℓ) [Field K] (n : ℕ) extends Variety K n : Type ℓ where
-  krull_dim_1 : ∀ I J : Ideal (toVariety.coord_ring),
-    [I.IsPrime] → [J.IsPrime] → I ≠ ⊥ → J ≠ ⊥ → I ≤ J → I = J
+  krull_dim_1 : ∀ I J K : Ideal (toVariety.coord_ring),
+    [I.IsPrime] → [J.IsPrime] → [K.IsPrime]
+    → I ≠ ⊥ → J ≠ ⊥ → K ≠ ⊥ → I < J → J < K → I = J ∨ J = K
 
 namespace Curve
 

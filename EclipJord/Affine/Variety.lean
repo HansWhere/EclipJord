@@ -107,16 +107,63 @@ instance zariski_topology [DecidableEq K] : TopologicalSpace (𝔸 K n) where
 --   algebraic : V = 𝕍 I
 
 structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
-  V : Set (𝔸 K n)
-  is_algebraic : ∃ I : Ideal K[X,..]n, V = 𝕍 I
+  carrier : Set (𝔸 K n)
+  gen_by_ideal : ∃ I : Ideal K[X,..]n, V = 𝕍 I
+
+namespace AlgSet
+
+instance : SetLike (AlgSet K n) (𝔸 K n) :=
+  ⟨carrier, λ p q ↦ by cases p; cases q; congr!⟩
+
+@[simp]
+lemma mem_carrier {p : AlgSet K n} : x ∈ p.carrier ↔ x ∈ (p : Set (𝔸 K n)) := Iff.rfl
+
+@[ext]
+theorem ext {p q : AlgSet K n} (h : ∀ x, x ∈ p ↔ x ∈ q) : p = q := SetLike.ext h
+
+protected def copy (p : AlgSet K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : AlgSet K n :=
+  { carrier := s
+    gen_by_ideal := p.gen_by_ideal }
+
+@[simp] lemma coe_copy (p : AlgSet K n) (s : Set (𝔸 K n)) (hs : s = ↑p) :
+  (p.copy s hs : Set (𝔸 K n)) = s := rfl
+
+lemma copy_eq (p : AlgSet K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : p.copy s hs = p :=
+  SetLike.coe_injective hs
+
+end AlgSet
 
 structure Variety (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
-  V : Set (𝔸 K n)
-  is_prime : ∃ I : Ideal K[X,..]n, IsPrime I ∧ V = 𝕍 I
+  carrier : Set (𝔸 K n)
+  gen_by_prime : ∃ I : Ideal K[X,..]n, IsPrime I ∧ V = 𝕍 I
+
+namespace Variety
+
+instance : SetLike (Variety K n) (𝔸 K n) :=
+  ⟨carrier, λ p q ↦ by cases p; cases q; congr!⟩
+
+@[simp]
+lemma mem_carrier {p : Variety K n} : x ∈ p.carrier ↔ x ∈ (p : Set (𝔸 K n)) := Iff.rfl
+
+@[ext]
+theorem ext {p q : Variety K n} (h : ∀ x, x ∈ p ↔ x ∈ q) : p = q := SetLike.ext h
+
+protected def copy (p : Variety K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : Variety K n :=
+  { carrier := s
+    gen_by_prime := p.gen_by_prime }
+
+@[simp] lemma coe_copy (p : Variety K n) (s : Set (𝔸 K n)) (hs : s = ↑p) :
+  (p.copy s hs : Set (𝔸 K n)) = s := rfl
+
+lemma copy_eq (p : Variety K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : p.copy s hs = p :=
+  SetLike.coe_injective hs
+
+end Variety
+
 
 def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
-  V := A.V
-  is_algebraic := Exists.elim A.is_prime $ by
+  carrier := A.carrier
+  gen_by_ideal := Exists.elim A.gen_by_prime $ by
     rintro I0 ⟨_, h⟩
     exists I0
 }

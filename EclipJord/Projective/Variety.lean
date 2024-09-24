@@ -3,37 +3,38 @@ import Mathlib.Algebra.Polynomial.Eval
 import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.RingTheory.Ideal.Basic
 import Mathlib.RingTheory.MvPolynomial.Homogeneous
+import Mathlib.Algebra.MvPolynomial.Monad
 import Mathlib.RingTheory.GradedAlgebra.HomogeneousIdeal
 import Mathlib.RingTheory.GradedAlgebra.Radical
 import Mathlib.RingTheory.Ideal.Quotient
--- import Mathlib.RingTheory.GradedAlgebra.Basic
 import Mathlib.RingTheory.Polynomial.Basic
--- import Mathlib.Algebra.DirectSum.Decomposition
 import Mathlib.Algebra.BigOperators.Group.Finset
 import Mathlib.Algebra.Module.Defs
 import Mathlib.Algebra.Field.Defs
--- import Mathlib.LinearAlgebra.Quotient
 import Mathlib.Topology.Basic
--- import Mathlib.Order.BooleanAlgebra
 import Mathlib.Data.Multiset.Basic
 import Mathlib.Data.Set.Finite
 import EclipJord.Affine.Variety
-import EclipJord.Projective.Defs
+import EclipJord.Projective.AffineChart
 open MvPolynomial
 open Ideal
--- open DirectSum
--- open scoped Pointwise
 
 variable {n : ℕ} {K : Type ℓ} [Field K]
 
 noncomputable section
 scoped[MvPolynomial] notation:9000 R "[X,..]" n "homo" => (homogeneousSubmodule (Fin n) R)
 
-theorem MvPolynomial.eval_smul_homo [Field K] : ∀ P₀ : 𝔸 K n, ∀ f : K[X,..]n, ∀ k : K, ∀ d : ℕ,
-    k^d * (eval P₀ (homogeneousComponent d f)) = eval (k • P₀) (homogeneousComponent d f) := by
+instance : GradedRing (K[X,..]n homo) := MvPolynomial.gradedAlgebra
+
+namespace MvPolynomial
+
+theorem eval_smul_homo [Field K] : ∀ P₀ : 𝔸 K n, ∀ f : K[X,..]n, ∀ k : K, ∀ d : ℕ,
+    k^d * (eval P₀ (homogeneousComponent d f))
+    = eval (k • P₀) (homogeneousComponent d f) := by
   intro P₀ f k d
   have fh := homogeneousComponent_isHomogeneous d f
-  simp only [MvPolynomial.IsHomogeneous, IsWeightedHomogeneous, weightedDegree_one, degree, coeff] at fh
+  simp only [MvPolynomial.IsHomogeneous, IsWeightedHomogeneous,
+    weightedDegree_one, degree, coeff] at fh
   simp [eval_eq, coeff]
   have fh' : ∀ x ∈ ((homogeneousComponent d) f).support, ∑ i ∈ x.support, x i = d := by
     intro x
@@ -62,6 +63,63 @@ theorem MvPolynomial.eval_smul_homo [Field K] : ∀ P₀ : 𝔸 K n, ∀ f : K[X
         rw [mul_comm]
       rw [mul_assoc]
     rw [←Finset.mul_sum]
+
+def dehX (j : Fin n.succ) (i : Fin n.succ) : K[X,..]n :=
+    if oh : i < j then X ⟨i.1, by
+      have jh := j.2
+      simp [LT.lt, Nat.lt] at oh jh
+      exact Nat.le_trans oh jh
+    ⟩
+    else if ohh : i = j then 1
+    else match i with
+      | ⟨.zero, _⟩ => by
+        simp at oh ohh
+        have := ohh oh.symm
+        contradiction
+      | ⟨.succ i₀, i₀h⟩ => X ⟨i₀, Nat.le_of_succ_le_succ i₀h⟩
+
+def dehomogenization (j : Fin n.succ) : (K[X,..]n.succ) →ₐ[K] K[X,..]n :=
+  aeval (dehX j)
+
+def embX (j : Fin n.succ) (i : Fin n) : K[X,..]n.succ :=
+    if i < j then X i.1.cast
+    else if i = j then 1
+    else X i.1.succ.cast
+
+def dehX_embX_cancel (p : K[X,..]n) (d : ℕ) (j : Fin n.succ) :
+    (aeval (dehX j)) ((homogeneousComponent d) (aeval (@embX n K _ j) p))
+    = homogeneousComponent d p := by
+  simp [homogeneousComponent, weightedHomogeneousComponent,
+    weightedDegree, Finsupp.restrictDom]
+
+
+  sorry
+
+def homogenization (j : Fin n.succ) (p : K[X,..]n) : (K[X,..]n.succ) :=
+  let N := p.totalDegree + 1
+  ∑ d ∈ Finset.range N, (homogeneousComponent d) (aeval (embX j) p) * (X j)^(N-d)
+  -- support := (bind₁ (embX j) p).support
+
+theorem dehomo_surj (j : Fin n.succ)
+    : Function.Surjective (@MvPolynomial.dehomogenization n K _ j) := by
+  simp [Function.Surjective, dehomogenization]
+  intro p
+  exists p.homogenization j
+  simp [homogenization, dehX]
+  conv =>
+    arg 2
+    rw [←sum_homogeneousComponent p]
+  congr
+  ext d m
+  rw [MvPolynomial.coeff_homogeneousComponent, degree]
+
+
+end MvPolynomial
+
+def HomogeneousIdeal.dehomogenization (j : Fin n.succ)
+(I : HomogeneousIdeal (K[X,..]n.succ homo)) : Ideal K[X,..]n :=
+  I.toIdeal.map (MvPolynomial.dehomogenization j)
+
 
 -- theorem coeff_all0 (σ : Finset ℕ) : ∀ f : ℕ → K,
 --   (∀ k : no0 K, (∑ d ∈ σ, (k.1^d) * f d) = 0) ↔ ∀ d ∈ σ, f d = 0 := by
@@ -138,27 +196,7 @@ variable {n d : ℕ}
 def vanish (P : ℙ K n) (f : K[X,..] n+1) : Prop
 := ∀ P₀ : no0 (𝔸 K (n+1)), ℙ.mk P₀ = P → eval P₀.1 f = 0
 
-#check (inferInstance : SetLike.GradedMonoid (K[X,..]n homo))
--- #check (inferInstance : GradedRing (homogeneousSubmodule (Fin n) K))
-
-instance : DirectSum.Decomposition (K[X,..]n homo) where
-  decompose' f := DirectSum.mk
-    (λ d ↦ ↥(K[X,..]n homo d))
-    (Finset.range f.totalDegree)
-    (λ d ↦ ⟨homogeneousComponent d f, homogeneousComponent_isHomogeneous d f⟩)
-  left_inv := by
-    intro f
-    rw [MvPolynomial.ext_iff]
-    intro m
-    sorry
-  right_inv := sorry
-
-instance : GradedRing (K[X,..]n homo) where
-
 end ℙ
-
-#check (inferInstance : DirectSum.Decomposition K[X,..]n homo)
-#check (inferInstance : GradedRing K[X,..]n homo)
 
 -- x^2-1 ∈ 𝕞? [1 : 0]
 -- 1
@@ -192,9 +230,6 @@ end ℙ
 --       apply fh
 --       exact kP₀h
 -- }
-
--- class Algebraic (V : Set (ℙ K n)) : Prop :=
---   is_algebraic : ∃ I : HomogeneousIdeal (K[X,..] n+1 homo), V = 𝕍 I
 
 abbrev HomogeneousIdeal.zero_locus (I : HomogeneousIdeal K[X,..] n+1 homo) : Set (ℙ K n)
 := { P : ℙ K n | ∀ f ∈ I, P.vanish f}
@@ -263,50 +298,59 @@ protected def copy (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) : Varie
 lemma copy_eq (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) : p.copy s hs = p :=
   SetLike.coe_injective hs
 
-def singleton (P : ℙ K n) : Variety K n := {
-  carrier := {P}
+def chart (j : Fin n.succ) (V : Variety K n) : 𝔸.Variety K n where
+  carrier := (AffineChart K n j).invFun '' { P : Part K n j | P.1 ∈ V.1 }
   gen_by_prime := by
-    let fs := {f : K[X,..]n+1
-      | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
-      ∧ ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → eval P₀ f = 0}
-    exists HomogeneousIdeal.mk (Ideal.span fs) $ by
-      apply Ideal.homogeneous_span
-      simp [SetLike.Homogeneous, fs]
-      intro _ i _ _
-      exists i
-    simp only [fs, HomogeneousIdeal.toIdeal, 𝕍]
-    constructor
-    rw [isPrime_iff]
-    constructor
-    . rw [ne_top_iff_one, ←submodule_span_eq, mem_span_set']
-      push_neg
-      intro m ks fs' h
-      -- have contrad : @Eq K 0 1 := by
-      have ctr := congr_arg (eval P.out.1) h
-      simp at ctr
-      conv at ctr =>
-        congr
-        tactic =>
-          apply Fintype.sum_congr
-          intro i
-          have fsh := (fs' i).2
-          dsimp at fsh
-          rcases fsh with ⟨fsh1, fsh21, fsh22⟩
-        conv =>
-          arg 2
-          simp [fsh22 P.out (Quotient.out_eq P)]
-        rw [mul_zero]
-      rw [Fintype.sum_eq_zero] at ctr
-      apply @zero_ne_one K
-      exact ctr
-      intro
-      trivial
-    . intro f g fgh
-      rw [or_iff_not_imp_left]
-      intro fnh
-      sorry
-    . sorry
-}
+    rcases V with ⟨V, I, I_prime, 𝕍I_eq_V⟩
+    intro V₀
+    exists I.dehomogenization j
+    simp [HomogeneousIdeal.dehomogenization]
+    sorry
+
+-- def Singleton (P : ℙ K n) : Variety K n := {
+--   carrier := {P}
+--   gen_by_prime := by
+--     let fs := {f : K[X,..]n+1
+--       | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
+--       ∧ ∀ P₀ : no0 (𝔸 K (n + 1)), ⟦P₀⟧ = P → eval P₀ f = 0}
+--     exists HomogeneousIdeal.mk (Ideal.span fs) $ by
+--       apply Ideal.homogeneous_span
+--       simp [SetLike.Homogeneous, fs]
+--       intro _ i _ _
+--       exists i
+--     simp only [fs, HomogeneousIdeal.toIdeal, 𝕍]
+--     constructor
+--     rw [isPrime_iff]
+--     constructor
+--     . rw [ne_top_iff_one, ←submodule_span_eq, mem_span_set']
+--       push_neg
+--       intro m ks fs' h
+--       -- have contrad : @Eq K 0 1 := by
+--       have ctr := congr_arg (eval P.out.1) h
+--       simp at ctr
+--       conv at ctr =>
+--         congr
+--         tactic =>
+--           apply Fintype.sum_congr
+--           intro i
+--           have fsh := (fs' i).2
+--           dsimp at fsh
+--           rcases fsh with ⟨fsh1, fsh21, fsh22⟩
+--         conv =>
+--           arg 2
+--           simp [fsh22 P.out (Quotient.out_eq P)]
+--         rw [mul_zero]
+--       rw [Fintype.sum_eq_zero] at ctr
+--       apply @zero_ne_one K
+--       exact ctr
+--       intro
+--       trivial
+--     . intro f g fgh
+--       rw [or_iff_not_imp_left]
+--       intro fnh
+--       sorry
+--     . sorry
+-- }
 
 end Variety
 

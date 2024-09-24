@@ -14,11 +14,11 @@ abbrev 𝔸.no0.Part (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ) : Type 
 := {P : no0 (𝔸 K n.succ) // P.1 j ≠ 0}
 
 instance 𝔸.no0.Part.collinear.eqv {j : Fin n.succ}
-: Setoid (𝔸.no0.Part K n j)
+    : Setoid (𝔸.no0.Part K n j)
 := Subtype.instSetoid_mathlib (λ P : no0 (𝔸 K n.succ) ↦ P.1 j ≠ 0)
 
 def 𝔸.no0.Part.toℙPart (P : 𝔸.no0.Part K n j)
-: ℙ.Part K n ⟨j.1, by linarith [j.2]⟩ := ⟨ℙ.mk P.1, (by
+    : ℙ.Part K n ⟨j.1, by linarith [j.2]⟩ := ⟨ℙ.mk P.1, (by
   simp [𝔸.no0.Part] at P
   simp [ℙ.ne0_at]
   intro _ _ P₀h
@@ -28,7 +28,7 @@ def 𝔸.no0.Part.toℙPart (P : 𝔸.no0.Part K n j)
 )⟩
 
 def 𝔸.no0.Part.EquivℙPart (j : Fin n.succ)
-: Quotient (@𝔸.no0.Part.collinear.eqv K _ n j) ≃ ℙ.Part K n j  := by
+    : Quotient (@𝔸.no0.Part.collinear.eqv K _ n j) ≃ ℙ.Part K n j  := by
   symm
   apply Equiv.subtypeQuotientEquivQuotientSubtype
   intro ⟨P, P_ne0⟩
@@ -146,7 +146,7 @@ def ℙ.Part.to𝔸 {j : Fin n.succ} (P : Part K n j) : 𝔸 K n
 --   . simp only [oh, ohh, P₁_eq_kP₂, mul_div_mul_left _ _ kh]
 
 def AffineChart (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ)
-: 𝔸 K n ≃ ℙ.Part K n j := {
+    : 𝔸 K n ≃ ℙ.Part K n j := {
   toFun := 𝔸.toℙPart j
   invFun := ℙ.Part.to𝔸
   left_inv := by
