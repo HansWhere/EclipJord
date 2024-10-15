@@ -3,7 +3,7 @@ import Mathlib.Algebra.Polynomial.Eval
 import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.RingTheory.Ideal.Basic
 import Mathlib.RingTheory.MvPolynomial.Homogeneous
-import Mathlib.Algebra.MvPolynomial.Monad
+-- import Mathlib.Algebra.MvPolynomial.Monad
 import Mathlib.RingTheory.GradedAlgebra.HomogeneousIdeal
 import Mathlib.RingTheory.GradedAlgebra.Radical
 import Mathlib.RingTheory.Ideal.Quotient
@@ -74,121 +74,87 @@ def dehX (j : Fin n.succ) (i : Fin n.succ) : K[X,..]n :=
     else match i with
       | ⟨.zero, _⟩ => by
         simp at oh ohh
-        have := ohh oh.symm
-        contradiction
+        exact (ohh oh.symm).elim
       | ⟨.succ i₀, i₀h⟩ => X ⟨i₀, Nat.le_of_succ_le_succ i₀h⟩
 
 def dehomogenization (j : Fin n.succ) : (K[X,..]n.succ) →ₐ[K] K[X,..]n :=
   aeval (dehX j)
 
 def embX (j : Fin n.succ) (i : Fin n) : K[X,..]n.succ :=
-    if i < j then X i.1.cast
-    else if i = j then 1
-    else X i.1.succ.cast
+  if i < j then X i.1.cast
+  else X i.1.succ.cast
 
-def dehX_embX_cancel (p : K[X,..]n) (d : ℕ) (j : Fin n.succ) :
-    (aeval (dehX j)) ((homogeneousComponent d) (aeval (@embX n K _ j) p))
-    = homogeneousComponent d p := by
-  simp [homogeneousComponent, weightedHomogeneousComponent,
-    weightedDegree, Finsupp.restrictDom]
-
-
-  sorry
+def dehX_embX_cancel (j : Fin n.succ) (i : Fin n):
+    (aeval (dehX j)) (@embX n K _ j i) = @X K _ _ i
+:= by
+  simp [embX]
+  rcases i with ⟨i, i_n⟩
+  rcases j with ⟨j, j_n⟩
+  if oh : i < j then
+    simp [oh, dehX]
+  else
+    simp [oh, dehX]
+    simp at oh
+    have : ¬ i.succ < j := by
+      linarith
+    simp [this]
+    intro
+    exact (show False by linarith).elim
 
 def homogenization (j : Fin n.succ) (p : K[X,..]n) : (K[X,..]n.succ) :=
-  let N := p.totalDegree + 1
-  ∑ d ∈ Finset.range N, (homogeneousComponent d) (aeval (embX j) p) * (X j)^(N-d)
-  -- support := (bind₁ (embX j) p).support
+  ∑ m ∈ p.support,
+    aeval (embX j) (monomial m (coeff m p)) * (X j)^(p.totalDegree + 1 - degree m)
 
-theorem dehomo_surj (j : Fin n.succ)
-    : Function.Surjective (@MvPolynomial.dehomogenization n K _ j) := by
-  simp [Function.Surjective, dehomogenization]
+theorem dehomo_homo
+    : Function.LeftInverse (@dehomogenization n K _ j) (@homogenization n K _ j) := by
+  simp [Function.LeftInverse, dehomogenization]
   intro p
-  exists p.homogenization j
   simp [homogenization, dehX]
   conv =>
     arg 2
-    rw [←sum_homogeneousComponent p]
+    rw [as_sum p]
   congr
-  ext d m
-  rw [MvPolynomial.coeff_homogeneousComponent, degree]
+  ext m' m
+  rw [monomial_eq]
+  simp [or_iff_not_imp_right]
+  intro
+  conv =>
+    arg 1; arg 2
+    tactic =>
+      apply Finset.prod_congr rfl
+      intros
+    rw [dehX_embX_cancel]
 
+
+theorem ker_dehomo
+    : RingHom.ker (dehomogenization j) = Ideal.span {@X K (Fin n.succ) _ j - 1} := by
+  simp only [RingHom.ker]
+  ext p
+  rw [Ideal.mem_span_singleton', Ideal.mem_comap]
+  simp [dehomogenization] --
+  rw [as_sum p, aeval_sum]
+  conv =>
+    arg 1; arg 1
+    tactic =>
+      apply Finset.sum_congr rfl
+      intro m mh
+    rw [aeval_monomial]
+    simp --[dehX, Finsupp.prod]
+  simp
+  constructor
+  .
+    sorry
+  . simp
+    intro q eq_p
+    rw [←eq_p]
+    simp [dehX]
+    sorry
 
 end MvPolynomial
 
 def HomogeneousIdeal.dehomogenization (j : Fin n.succ)
 (I : HomogeneousIdeal (K[X,..]n.succ homo)) : Ideal K[X,..]n :=
   I.toIdeal.map (MvPolynomial.dehomogenization j)
-
-
--- theorem coeff_all0 (σ : Finset ℕ) : ∀ f : ℕ → K,
---   (∀ k : no0 K, (∑ d ∈ σ, (k.1^d) * f d) = 0) ↔ ∀ d ∈ σ, f d = 0 := by
---   intro f
---   apply Iff.intro
---   by_contra! h
---   . rcases h with ⟨sh, d₀, d₀h, fd₀_ne0⟩
---     have fh := sh
---     conv at fh =>
---       intro k
---       conv =>
---         lhs
---         rw [←Finset.sum_filter_add_sum_filter_not _ (Eq d₀), Finset.filter_eq]
---         simp [d₀h]
---       rw [add_eq_zero_iff_neg_eq]
---       simp
---     -- have some_ne0 : ∀ k : no0 K, k.1 ^ d₀ * f d₀ ≠ 0 := by
---     --   intro k
---     --   apply mul_ne_zero
---     --   . apply pow_ne_zero
---     --     exact k.2
---     --   . exact fd₀_ne0
---     have another_ne0 : ∀ k : no0 K, ∃ x ∈ Finset.filter (λ x ↦ d₀ ≠ x) σ, k.1 ^ x * f x ≠ 0 := by
---       intro k
---       apply Finset.exists_ne_zero_of_sum_ne_zero
---       rw [←fh k]
---       apply neg_ne_zero.mpr
---       -- exact some_ne0 k
---       apply mul_ne_zero
---       . apply pow_ne_zero
---         exact k.2
---       . exact fd₀_ne0
---     -- conv at some_ne0 =>
---     --   conv =>
---     --     intro k
---     --     rw [mul_ne_zero_iff]
---     --     simp [k.2]
---     --   simp
---     conv at another_ne0 =>
---       conv =>
---         intro k
---         simp [k.2]
---       simp
---     --  at some_ne0
---     rcases another_ne0 with ⟨d₁, ⟨d₁h, d₀_ne_d₁⟩, fd₁_ne0⟩
---     -- ∃ d, d ∈ σ ∧ d₀ ≠ d ∧ f d ≠ 0
---     have sh1 := sh ⟨1, by simp⟩
---     simp [one_pow] at sh1
-
---   . intro dh k
---     apply Finset.sum_eq_zero
---     intro d₀ d₀h
---     apply mul_eq_zero_of_right
---     exact dh d₀ d₀h
-
-
-  -- intro kh
-  -- intro sh
-  -- by_contra h
-  -- push_neg at h
-  -- rcases h with ⟨h₀, hh⟩
-  -- #check Finset.sum_filter_add_sum_filter_not σ (λ d ↦ d = h) (λ d ↦ k ^ d * c d)
-  -- rw [←Finset.sum_filter_add_sum_filter_not _ (λ d ↦ d = h₀)] at sh
-  -- have : Finset.filter (fun d ↦ d = h₀) σ = {h₀} := sorry
-  -- simp [Finset.coe_filter] at sh
-
-  -- intro dh
-  -- simp [dh]
-  -- done
 
 namespace ℙ
 variable {n d : ℕ}
@@ -197,39 +163,6 @@ def vanish (P : ℙ K n) (f : K[X,..] n+1) : Prop
 := ∀ P₀ : no0 (𝔸 K (n+1)), ℙ.mk P₀ = P → eval P₀.1 f = 0
 
 end ℙ
-
--- x^2-1 ∈ 𝕞? [1 : 0]
--- 1
-
--- def 𝕞? (P : ℙ K n) : HomogeneousIdeal (K[X,..] n+1 homo) := {
---   carrier := {f : K[X,..] n+1 | P.vanish f}
---   add_mem' := by
---     intros f g fh gh P₀ P₀h
---     simp [fh P₀ P₀h, gh P₀ P₀h]
---   zero_mem' := by
---     simp [vanish]
---   smul_mem' := by
---     intros r f fh P₀ P₀h
---     simp [fh P₀ P₀h]
---   is_homogeneous' := by
---     simp only [vanish, Ideal.IsHomogeneous]
---     intros d f fh P₀ P₀h
---     simp at fh
---     rw [←sum_homogeneousComponent f] at fh
---     have fh' : ∀ (k : no0 K), ∀ (P₀ : no0 (𝔸 K (n + 1))), ⟦P₀⟧ = P →
---         (∑ d ∈ Finset.range (f.totalDegree + 1),
---         (k.1 ^ d * (eval P₀.1 (homogeneousComponent d f)))) = 0 := by -- eval (k.1 • P₀.1)) ((homogeneousComponent i) f)
---       intro k P₀ kP₀h
---       -- have kP1_distr : k.1 • P₀.1 = (k • P₀).1 := by simp [(.•.), SMul.smul, 𝔸.no0.smul']
---       -- rw [kP1_distr]
---       conv =>
---         lhs; arg 2; intro d
---         rw [eval_smul_homo P₀.1 f k.1 d]
---       rw [←𝔸.no0.collinear.smul_closed P₀ k] at kP₀h
---       rw [←eval_sum (Finset.range (f.totalDegree + 1)) (λ d ↦ (homogeneousComponent d) f) (k.1 • P₀.1)]
---       apply fh
---       exact kP₀h
--- }
 
 abbrev HomogeneousIdeal.zero_locus (I : HomogeneousIdeal K[X,..] n+1 homo) : Set (ℙ K n)
 := { P : ℙ K n | ∀ f ∈ I, P.vanish f}
@@ -298,14 +231,32 @@ protected def copy (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) : Varie
 lemma copy_eq (p : Variety K n) (s : Set (ℙ K n)) (hs : s = ↑p) : p.copy s hs = p :=
   SetLike.coe_injective hs
 
-def chart (j : Fin n.succ) (V : Variety K n) : 𝔸.Variety K n where
+def 𝔸chart (j : Fin n.succ) (V : Variety K n) : 𝔸.Variety K n where
   carrier := (AffineChart K n j).invFun '' { P : Part K n j | P.1 ∈ V.1 }
   gen_by_prime := by
     rcases V with ⟨V, I, I_prime, 𝕍I_eq_V⟩
-    intro V₀
+    -- intro V₀
     exists I.dehomogenization j
     simp [HomogeneousIdeal.dehomogenization]
-    sorry
+    constructor
+    . if kerh : RingHom.ker (dehomogenization j) ≤ I.toIdeal then
+        apply Ideal.map_isPrime_of_surjective
+        . exact dehomo_homo.surjective
+        . exact kerh
+      else
+        sorry
+    .
+      simp [←𝕍I_eq_V, Set.image, AffineChart, 𝔸.𝕍, Ideal.map, dehomogenization]
+      ext P
+      simp
+      constructor
+      . intro
+        sorry
+      . intro
+        sorry
+      sorry
+
+
 
 -- def Singleton (P : ℙ K n) : Variety K n := {
 --   carrier := {P}
