@@ -3,9 +3,11 @@ import Mathlib.Algebra.Polynomial.Eval
 import Mathlib.RingTheory.Ideal.Operations
 import Mathlib.RingTheory.Polynomial.Basic
 import Mathlib.RingTheory.Nullstellensatz
+import Mathlib.RingTheory.Ideal.Quotient
 import Mathlib.Algebra.Module.Defs
 import Mathlib.Topology.Basic
 import Mathlib.Data.Set.Finite
+import Mathlib.Data.Quot
 import EclipJord.Affine.Defs
 -- import Mathlib.FieldTheory.IsAlgClosed.AlgebraicClosure
 open MvPolynomial
@@ -37,7 +39,7 @@ theorem MvPolynomial.dvd_iff_eval_zero {f : K[X,..]n}
 -- abbrev 𝕍 (I : Ideal K[X,..]n) : Set (𝔸 K n)
 --   := { P : 𝔸 K n | ∀ f ∈ I, eval P f = 0}
 
-abbrev 𝕍 (I : Ideal K[X,..]n) : Set (𝔸 K n) := zeroLocus I
+abbrev 𝕍 : Ideal (K[X,..]n) → Set (𝔸 K n) := zeroLocus
 
 instance zariski_topology [DecidableEq K] : TopologicalSpace (𝔸 K n) where
   IsOpen U := ∃ I : Ideal K[X,..]n, U = (𝕍 I)ᶜ
@@ -123,7 +125,8 @@ structure AlgSet (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
   carrier : Set (𝔸 K n)
   gen_by_ideal : ∃ I : Ideal K[X,..]n, 𝕍 I = carrier
 
-def Set.isAlgebraic (V : Set (𝔸 K n)) : Prop := ∃ I : Ideal K[X,..]n, 𝕍 I = V
+@[simp]
+abbrev Set.isAlgebraic (V : Set (𝔸 K n)) : Prop := ∃ I : Ideal K[X,..]n, 𝕍 I = V
 
 -- def 𝕀 (V : AlgSet K n) : Ideal K[X,..]n where
 --   carrier := {f : K[X,..]n | ∀ P ∈ V.1, eval P f = 0}
@@ -142,14 +145,17 @@ def Set.isAlgebraic (V : Set (𝔸 K n)) : Prop := ∃ I : Ideal K[X,..]n, 𝕍 
 --     right
 --     exact fh P Ph
 
-def 𝕀 (V : AlgSet K n) : Ideal K[X,..]n := MvPolynomial.vanishingIdeal V.1
+abbrev 𝕀 : Set (𝔸 K n) → Ideal K[X,..]n := vanishingIdeal
 
-def AlgSet.coordRing (V : AlgSet K n) : Type ℓ := (K[X,..]n) ⧸ (𝕀 V)
+abbrev AlgSet.coordRing (V : AlgSet K n) : Type ℓ := (K[X,..]n) ⧸ (𝕀 V.1)
 
--- instance (V : AlgSet K n) : Ring (V.coordRing) :=
+instance AlgSet.coordRing.commRing (V : AlgSet K n) : CommRing V.coordRing :=
+  Ideal.Quotient.commRing (𝕀 V.1)
+
+-- instance {V : AlgSet K n} : Ring (V.coordRing) where
 
 -- def 𝕞 (P : 𝔸 K n) : Ideal K[X,..]n := Ideal.span { f : K[X,..]n | ∃ i, X i - C (P i) = f}
-def 𝕞 (P : 𝔸 K n) : Ideal K[X,..]n := 𝕀 {P}
+-- def 𝕞 (P : 𝔸 K n) : Ideal K[X,..]n := 𝕀 {P}
 
 namespace AlgSet
 
@@ -172,30 +178,30 @@ protected def copy (p : AlgSet K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : AlgSe
 lemma copy_eq (p : AlgSet K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : p.copy s hs = p :=
   SetLike.coe_injective hs
 
-def singleton (P : 𝔸 K n) : AlgSet K n where
-  carrier := {P}
-  gen_by_ideal := by
-    exists 𝕞 P
-    ext P'
-    simp [𝕍, 𝕞]
-    constructor
-    . intro fh
-      ext ⟨i, i_lt_n⟩
-
-
-      -- rw [←not_imp_not]
-      -- intro P'_ne_P
-
-      sorry
-    . sorry
-
 end AlgSet
 
-def AlgSet.𝕞 (P : 𝔸 K n) (V : AlgSet K n) : Ideal V.coordRing := 𝕞 P
+def AlgSet.𝕞 (P : 𝔸 K n) (V : AlgSet K n) : Ideal V.coordRing where --:= (𝕀 {P}).map (Ideal.Quotient.mk (𝕀 V.1))
+  carrier := {f : V.coordRing | ∃ f₀ ∈ 𝕀 {P}, Ideal.Quotient.mk (𝕀 V.1) f₀ = f}
+  add_mem' := by
+    simp
+    intro f g f₀ fh0 fh g₀ gh0 gh
+    exists f₀ + g₀
+    constructor
+    . simp [eval_add, fh0, gh0]
+    . show Ideal.Quotient.mk _ f₀ + Ideal.Quotient.mk _ g₀ = f + g
+      rw [fh, gh]
+  zero_mem' := by exists 0; simp
+  smul_mem' := by
+    simp
+    apply Quotient.ind
+    intro k f fh0
+    exists k * f
+    simp [fh0]
+    congr
 
 structure Variety (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ where
   carrier : Set (𝔸 K n)
-  gen_by_prime : ∃ I : Ideal K[X,..]n, IsPrime I ∧ 𝕍 I = carrier
+  gen_by_prime : ∃ I : Ideal K[X,..]n, I.IsPrime ∧ 𝕍 I = carrier
 
 namespace Variety
 
@@ -223,9 +229,50 @@ end Variety
 def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
   carrier := A.carrier
   gen_by_ideal := Exists.elim A.gen_by_prime $ by
-    rintro I0 ⟨_, h⟩
-    exists I0
+    rintro I₀ ⟨_, h⟩
+    exists I₀
 }
 
+abbrev AlgSet.cotKer (P : 𝔸 K n) (V : AlgSet K n) : Submodule V.coordRing (V.𝕞 P) := V.𝕞 P • ⊤
+def AlgSet.cotSpace (P : 𝔸 K n) (V : AlgSet K n) : Type ℓ := V.𝕞 P ⧸ V.cotKer P
+
+instance AlgSet.cotSpace.addCommGroup (P : 𝔸 K n) (V : AlgSet K n) : AddCommGroup (V.cotSpace P) :=
+  Submodule.Quotient.addCommGroup (V.cotKer P)
+
+-- example (P : 𝔸 K n) := (K[X,..]n) ⧸ 𝕀 {P}
+-- #check Quotient.exists
+-- example {P : 𝔸 K n} {V : AlgSet K n} {k : (K[X,..]n) ⧸ 𝕀 {P}} {f : V.cotSpace P} : V.cotSpace P :=
+--   k.rec (λ k₀ : K[X,..]n ↦ f.rec (λ f₀ ↦ ⟦k₀•f₀⟧) (by
+--     intro f₀ g₀ f₀_eqv_g₀
+--     rw [←@Quotient.eq _ (V.cotKer P).quotientRel] at f₀_eqv_g₀
+--     simp [Quotient.mk] at f₀_eqv_g₀ ⊢
+--     rw [Submodule.Quotient.eq] at f₀_eqv_g₀
+--     rw [←Submodule.Quotient.mk_smul, ←Submodule.Quotient.mk_smul,
+--       Submodule.Quotient.eq, ←smul_sub k₀ f₀ g₀]
+--     exact Submodule.smul_mem (V.cotKer P) k₀ f₀_eqv_g₀
+--   )) (by
+--     intro k₁ k₂ k₁_eqv_k₂
+--     rw [←@Quotient.eq _ (𝕀 {P}).quotientRel] at k₁_eqv_k₂
+--     simp [Quotient.mk] at k₁_eqv_k₂ ⊢
+--     rw [Ideal.Quotient.eq] at k₁_eqv_k₂
+--     congr; ext f₀
+--     rw [←Submodule.Quotient.mk_smul, ←Submodule.Quotient.mk_smul, Submodule.Quotient.eq,
+--       ←sub_smul k₁ k₂ f₀, AlgSet.cotKer, Submodule.mem_smul_top_iff, Ideal.smul_eq_mul]
+--     rcases f₀ with ⟨⟨f₀₀⟩, f₀₀h⟩
+--     have : Ideal.Quotient.mk (𝕀 V.1) (k₁ - k₂) ∈ V.𝕞 P := by
+--       exists k₁ - k₂
+--     -- have : (k₁ - k₂) • f₀₀ = Ideal.Quotient.mk (𝕀 V.1) (k₁ - k₂) * f₀₀ := by
+--     --   simp
+--     simp [←Ideal.Quotient.mk_eq_mk]
+--     rw [←Submodule.Quotient.mk_smul]
+--     conv => arg 1; rw [←@Module.Quotient.mk_smul_mk (K[X,..]n) (K[X,..]n) _ _ _ (𝕀 V.1) (k₁ - k₂) f₀₀]
+--     done
+--   )
+  -- k.lift (λ k₀ ↦ (@Quotient.map _ _ (V.cotKer P).quotientRel (V.cotKer P).quotientRel
+  -- (λ f₀ ↦ (Ideal.Quotient.mk (𝕀 V.1) k₀ : ↥(V.𝕞 P)) * f₀.1) (by done)) (by done) f) $ by done
+
+instance AlgSet.cotSpace.module {P : 𝔸 K n} {V : AlgSet K n}
+    : Module (V.coordRing⧸V.𝕞 P) (V.cotSpace P) :=
+  Module.instQuotientIdealSubmoduleHSMulTop (V.𝕞 P) (V.𝕞 P)
 
 end 𝔸

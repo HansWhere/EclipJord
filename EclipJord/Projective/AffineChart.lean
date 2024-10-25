@@ -1,14 +1,13 @@
 import EclipJord.Projective.Defs
 import Mathlib.Tactic.Linarith.Frontend
 
-
 variable [Field K] {n : ℕ}
 
-def ℙ.ne0_at (j : Fin n.succ) (P : ℙ K n)  : Prop
-:= ∀ P₀ : no0 (𝔸 K n.succ), ℙ.mk P₀ = P → P₀.1 j ≠ 0
+def ℙ.ne0_at (j : Fin n.succ) (P : ℙ K n) : Prop :=
+  ∀ P₀ : no0 (𝔸 K n.succ), ℙ.mk P₀ = P → P₀.1 j ≠ 0
 
-abbrev ℙ.Part (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ) : Type ℓ
-:= {P : ℙ K n // P.ne0_at j}
+abbrev ℙ.Part (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ) : Type ℓ :=
+  {P : ℙ K n // P.ne0_at j}
 
 abbrev 𝔸.no0.Part (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ) : Type ℓ
 := {P : no0 (𝔸 K n.succ) // P.1 j ≠ 0}
@@ -78,13 +77,6 @@ def 𝔸.toℙPart (j : Fin n.succ) (P : 𝔸 K n) : ℙ.Part K n j
     exact k_ne0
   ⟩
 
--- noncomputable def ℙ.to𝔸 (j : Fin n.succ) (P : ℙ K n) : 𝔸 K n := λ i ↦
---   let P₀ := P.out
---   if i.1 < j.1 then
---     P₀.1 ⟨i.1, by apply lt_trans i.2; simp⟩ / P₀.1 j
---   else
---     P₀.1 ⟨i.1.succ, by rw [Nat.succ_lt_succ_iff]; exact i.2⟩ / P₀.1 j
-
 def 𝔸.no0.Part.to𝔸 (j : Fin n.succ) (P : 𝔸.no0.Part K n j) : 𝔸 K n
 := λ i ↦
   if i.1 < j.1 then
@@ -93,17 +85,6 @@ def 𝔸.no0.Part.to𝔸 (j : Fin n.succ) (P : 𝔸.no0.Part K n j) : 𝔸 K n
     P.1.1 ⟨i.1.succ, by rw [Nat.succ_lt_succ_iff]; exact i.2⟩ / P.1.1 j
 
 instance 𝔸.instSetoidEq : Setoid (𝔸 K n) := ⟨Eq, Eq.refl, Eq.symm, Eq.trans⟩
-
--- def collinear_relator (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ) :
---     ((@𝔸.no0.Part.collinear.eqv K _ _ _).r ⇒ (@Eq (𝔸 K n)))
---     (𝔸.no0.Part.to𝔸 j) (𝔸.no0.Part.to𝔸 j) := by
---   simp [Relator.LiftFun, Setoid.r]
---   intro P P_ne0 Pj_ne0 Q Q_ne0 Qj_ne0 P_eqv_Q
---   rcases P_eqv_Q with ⟨⟨k, k_ne0⟩, P_eq_kQ⟩
---   simp [.•.,SMul.smul] at P_eq_kQ
---   ext i
---   simp [𝔸.no0.Part.to𝔸]
---   simp [P_eq_kQ, mul_div_mul_left _ _ k_ne0]
 
 def ℙ.Part.to𝔸 {j : Fin n.succ} (P : Part K n j) : 𝔸 K n
 := ((𝔸.no0.Part.EquivℙPart j).invFun P).lift (𝔸.no0.Part.to𝔸 j) $ by
@@ -115,36 +96,6 @@ def ℙ.Part.to𝔸 {j : Fin n.succ} (P : Part K n j) : 𝔸 K n
   simp [𝔸.no0.Part.to𝔸]
   simp [P_eq_kQ, mul_div_mul_left _ _ k_ne0]
 
--- def ℙ.to𝔸s (j : Fin n.succ) (P : ℙ K n) (_ : P.ne0_at j) : Set (𝔸 K n)
--- := {P₁ : 𝔸 K n |
---   ∃ P₀ : no0 (𝔸 K n.succ),
---     ℙ.mk P₀ = P
---     ∧ (P₁ = λ i ↦
---       if i.1 < j.1 then
---         P₀.1 ⟨i.1, by apply lt_trans i.2; simp⟩ / P₀.1 j
---       else
---         P₀.1 ⟨i.1.succ, by rw [Nat.succ_lt_succ_iff]; exact i.2⟩ / P₀.1 j
---     )
--- }
-
--- theorem ℙ.to𝔸s_uniq (j : Fin n.succ) (P : ℙ K n) (h : P.ne0_at j)
--- : ∀ P₁ ∈ P.to𝔸s j h, ∀ P₂ ∈ P.to𝔸s j h, P₁ = P₂ := by
---   simp [to𝔸s]
---   intro P₁ P₁' P₁'_ne0 P₁'_inP P₁h P₂ P₂' P₂'_ne0 P₂'_inP P₂h
---   rw [←P₂'_inP] at P₁'_inP
---   simp [mk, eq_iff (⟨P₁', _⟩)] at P₁'_inP
---   rcases P₁'_inP with ⟨k, kh, P₁_eq_kP₂⟩
---   simp [.•., SMul.smul] at P₁_eq_kP₂
---   simp only [P₁h, P₂h]
---   apply funext
---   intro i
---   if oh : i.1 < j.1 then
---   . simp only [oh, P₁_eq_kP₂, mul_div_mul_left _ _ kh]
---   else if ohh : i.1 = j.1 then
---   . simp only [ohh, P₁_eq_kP₂, mul_div_mul_left _ _ kh]
---   else
---   . simp only [oh, ohh, P₁_eq_kP₂, mul_div_mul_left _ _ kh]
-
 def AffineChart (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ)
     : 𝔸 K n ≃ ℙ.Part K n j := {
   toFun := 𝔸.toℙPart j
@@ -155,7 +106,6 @@ def AffineChart (K : Type ℓ) [Field K] (n : ℕ) (j : Fin n.succ)
       Equiv.subtypeQuotientEquivQuotientSubtype, Quotient.hrecOn,
       Quot.hrecOn, Quot.recOn, Quot.rec]
     intro P
-    -- rw [Quotient.mk_out (𝔸.no0.Part.to𝔸 _ _)]
     funext i
     simp [𝔸.no0.Part.to𝔸]
     if oh : i.1 < j.1 then

@@ -22,7 +22,8 @@ open Ideal
 variable {n : ℕ} {K : Type ℓ} [Field K]
 
 noncomputable section
-scoped[MvPolynomial] notation:9000 R "[X,..]" n "homo" => (homogeneousSubmodule (Fin n) R)
+scoped[MvPolynomial] notation:9000 R "[X,..]" n "homo"
+  => (homogeneousSubmodule (Fin n) R)
 
 instance : GradedRing (K[X,..]n homo) := MvPolynomial.gradedAlgebra
 
@@ -164,8 +165,9 @@ def vanish (P : ℙ K n) (f : K[X,..] n+1) : Prop
 
 end ℙ
 
-abbrev HomogeneousIdeal.zero_locus (I : HomogeneousIdeal K[X,..] n+1 homo) : Set (ℙ K n)
-:= { P : ℙ K n | ∀ f ∈ I, P.vanish f}
+abbrev HomogeneousIdeal.zero_locus (I : HomogeneousIdeal K[X,..] n+1 homo)
+    : Set (ℙ K n) :=
+  { P : ℙ K n | ∀ f ∈ I, P.vanish f}
 
 namespace ℙ
 
@@ -254,7 +256,6 @@ def 𝔸chart (j : Fin n.succ) (V : Variety K n) : 𝔸.Variety K n where
         sorry
       . intro
         sorry
-      sorry
 
 
 
@@ -304,6 +305,8 @@ def 𝔸chart (j : Fin n.succ) (V : Variety K n) : 𝔸.Variety K n where
 -- }
 
 end Variety
+
+def 𝔸.AlgSet.ℙclosure
 
 def 𝕀 (V : AlgSet K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
   let fs := {f : K[X,..]n+1
@@ -382,12 +385,12 @@ theorem canc_𝕍𝕀 (V : AlgSet K n) : 𝕍 (𝕀 V) = V := by
 theorem canc_𝕀𝕍 (I : HomogeneousIdeal (K[X,..] n+1 homo)) : 𝕀 (𝕍 I) = I.radical := by
   sorry
 
-abbrev AlgSet.coord_ring (V : AlgSet K n) : Type ℓ :=
+abbrev AlgSet.coordRing (V : AlgSet K n) : Type ℓ :=
   (K[X,..]n + 1) ⧸ (𝕀 V).toIdeal
 
 -- def AlgSet.𝕞 (V : AlgSet K n) (P : ℙ K n) (Ph : P ∈ V.1)
 
-abbrev Variety.coord_ring (V : Variety K n) : Type ℓ :=
-  V.toAlgSet.coord_ring
+abbrev Variety.coordRing (V : Variety K n) : Type ℓ :=
+  V.toAlgSet.coordRing
 
 end ℙ

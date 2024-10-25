@@ -19,8 +19,6 @@ variable {n : ℕ}
 
 namespace 𝔸
 
-#check λ k : no0 K ↦ ↑k
-
 instance : NoZeroSMulDivisors K (𝔸 K n) where
   eq_zero_or_eq_zero_of_smul_eq_zero := by
     intros k P kPh
@@ -61,7 +59,6 @@ theorem mul_comm' : ∀ (a b : no0 K), mul' a b = mul' b a := by
   intro a b
   simp only [mul', mul_comm]
 
-@[default_instance]
 instance : CommGroup (no0 K) where
   mul := mul'
   mul_assoc := mul_assoc'
@@ -90,7 +87,6 @@ theorem mul_smul' : ∀ (x y : no0 K) (b : no0 (𝔸 K n))
   intro ⟨x, xh⟩ ⟨y, yh⟩ ⟨b, bh⟩
   simp only [smul', mul', mul_smul]
 
-@[default_instance]
 instance : MulAction (no0 K) (no0 (𝔸 K n)) where
   smul := smul'
   one_smul := one_smul'
@@ -122,7 +118,6 @@ theorem trans' {xs ys zs : no0 (𝔸 K n)}
   rw [mul_smul, ←h2]
   exact h1
 
-@[default_instance]
 instance eqv {n : ℕ} : Setoid (no0 (𝔸 K n)) where
   r := collinear
   iseqv := {
@@ -143,8 +138,8 @@ end no0
 
 end 𝔸
 
-def ℙ (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ
-:= Quotient (𝔸.no0.collinear.eqv : Setoid (no0 (𝔸 K n.succ)))
+def ℙ (K : Type ℓ) [Field K] (n : ℕ) : Type ℓ :=
+  Quotient (𝔸.no0.collinear.eqv : Setoid (no0 (𝔸 K n.succ)))
 
 namespace ℙ
 

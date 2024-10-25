@@ -128,7 +128,7 @@ theorem number_theory_4830 : isStrongPseudoprime 25 7 := by
   sorry
 
 
-theorem inequality_4835_1 (a b : ℝ) {_ : a > 0} {_ : b > 0} {_ : a > 0 ∧ b > 0}
+theorem number_theory_4835_1 (a b : ℝ) {_ : a > 0} {_ : b > 0}
     : ⌊a * b⌋ ≥ ⌊a⌋ * ⌊b⌋ := by
   have le_a := Int.floor_le a
   have le_b := Int.floor_le b
@@ -136,10 +136,14 @@ theorem inequality_4835_1 (a b : ℝ) {_ : a > 0} {_ : b > 0} {_ : a > 0 ∧ b >
   rw [←Int.cast_mul, ←Int.le_floor] at this
   apply this
 
-theorem inequality_4835_2 (a b : ℝ) {_ : a > 0} {_ : b > 0} {_ : a < 0 ∧ b < 0}
+theorem number_theory_4835_2 (a b : ℝ) {_ : a < 0} {_ : b < 0}
     : ⌊a * b⌋ ≥ ⌊a⌋ * ⌊b⌋ := by
+  let x := -a
+  let y := -b
   have le_a := Int.floor_le a
   have le_b := Int.floor_le b
   have := mul_le_mul le_a le_b (by simp [Int.floor_nonneg]; linarith) (by linarith)
   rw [←Int.cast_mul, ←Int.le_floor] at this
   apply this
+
+theorem number_theory_4835_3 : ∃ a b : ℝ, a > 0 ∧ b < 0
