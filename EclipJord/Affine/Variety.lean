@@ -180,7 +180,7 @@ lemma copy_eq (p : AlgSet K n) (s : Set (𝔸 K n)) (hs : s = ↑p) : p.copy s h
 
 end AlgSet
 
-def AlgSet.𝕞 (P : 𝔸 K n) (V : AlgSet K n) : Ideal V.coordRing where --:= (𝕀 {P}).map (Ideal.Quotient.mk (𝕀 V.1))
+def AlgSet.𝕞 {V : AlgSet K n} {P : 𝔸 K n} (_ : P ∈ V) : Ideal V.coordRing where
   carrier := {f : V.coordRing | ∃ f₀ ∈ 𝕀 {P}, Ideal.Quotient.mk (𝕀 V.1) f₀ = f}
   add_mem' := by
     simp
@@ -233,11 +233,48 @@ def Variety.toAlgSet (A : Variety K n) : AlgSet K n := {
     exists I₀
 }
 
-abbrev AlgSet.cotKer (P : 𝔸 K n) (V : AlgSet K n) : Submodule V.coordRing (V.𝕞 P) := V.𝕞 P • ⊤
-def AlgSet.cotSpace (P : 𝔸 K n) (V : AlgSet K n) : Type ℓ := V.𝕞 P ⧸ V.cotKer P
+abbrev AlgSet.cotKer {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V)
+    : Submodule V.coordRing (𝕞 PinV) :=
+  𝕞 PinV • ⊤
 
-instance AlgSet.cotSpace.addCommGroup (P : 𝔸 K n) (V : AlgSet K n) : AddCommGroup (V.cotSpace P) :=
-  Submodule.Quotient.addCommGroup (V.cotKer P)
+abbrev AlgSet.cotSpace {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V) : Type ℓ :=
+  𝕞 PinV ⧸ cotKer PinV
+
+instance AlgSet.maximalIdeal {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V) : IsMaximal (𝕞 PinV) where
+  out := by
+    rcases V with ⟨V, I, VIh⟩
+    simp [IsCoatom, eq_top_iff_one]
+    simp [←SetLike.mem_coe, SetLike.coe] at PinV
+    simp [𝕞, LT.lt]
+    constructor
+    . intro f fP_eq0
+      show ¬ (Ideal.Quotient.mk (𝕀 V)) f = (Ideal.Quotient.mk (𝕀 V)) 1
+      rw [Ideal.Quotient.eq, 𝕀, vanishingIdeal]
+      simp [←SetLike.mem_coe, SetLike.coe]
+      exists P
+      simp [PinV, fP_eq0]
+    . intro I' mP_le_I' mP_neq_I'
+
+      sorry
+
+instance AlgSet.cotSpace.addCommGroup {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V)
+    : AddCommGroup (cotSpace PinV) :=
+  Submodule.Quotient.addCommGroup (cotKer PinV)
+
+instance AlgSet.cotSpace.module {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V)
+    : Module (V.coordRing⧸𝕞 PinV) (cotSpace PinV) :=
+  Module.instQuotientIdealSubmoduleHSMulTop (𝕞 PinV) (𝕞 PinV)
+
+instance AlgSet.residueField {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V)
+    : Field (V.coordRing⧸𝕞 PinV) :=
+  Ideal.Quotient.field (𝕞 PinV)
+
+instance AlgSet.cotSpace.finiteDimensional {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V)
+    : FiniteDimensional (V.coordRing⧸𝕞 PinV) (cotSpace PinV) := sorry
+
+def AlgSet.exam {V : AlgSet K n} {P : 𝔸 K n} (PinV : P ∈ V)
+    : (⊤ : Submodule (V.coordRing⧸𝕞 PinV) (cotSpace PinV)).FG := by
+  simp [Submodule.FG]
 
 -- example (P : 𝔸 K n) := (K[X,..]n) ⧸ 𝕀 {P}
 -- #check Quotient.exists
@@ -270,9 +307,5 @@ instance AlgSet.cotSpace.addCommGroup (P : 𝔸 K n) (V : AlgSet K n) : AddCommG
 --   )
   -- k.lift (λ k₀ ↦ (@Quotient.map _ _ (V.cotKer P).quotientRel (V.cotKer P).quotientRel
   -- (λ f₀ ↦ (Ideal.Quotient.mk (𝕀 V.1) k₀ : ↥(V.𝕞 P)) * f₀.1) (by done)) (by done) f) $ by done
-
-instance AlgSet.cotSpace.module {P : 𝔸 K n} {V : AlgSet K n}
-    : Module (V.coordRing⧸V.𝕞 P) (V.cotSpace P) :=
-  Module.instQuotientIdealSubmoduleHSMulTop (V.𝕞 P) (V.𝕞 P)
 
 end 𝔸

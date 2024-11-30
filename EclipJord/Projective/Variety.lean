@@ -85,6 +85,14 @@ def embX (j : Fin n.succ) (i : Fin n) : K[X,..]n.succ :=
   if i < j then X i.1.cast
   else X i.1.succ.cast
 
+theorem isHomogeneous_embX (j : Fin n.succ) (i : Fin n)
+    : (embX j i : K[X,..]n.succ).IsHomogeneous 1 := by
+  simp [embX]
+  if oh : i.castSucc < j then
+    simp [oh, isHomogeneous_X]
+  else
+    simp [oh, isHomogeneous_X]
+
 def dehX_embX_cancel (j : Fin n.succ) (i : Fin n):
     (aeval (dehX j)) (@embX n K _ j i) = @X K _ _ i
 := by
@@ -104,13 +112,28 @@ def dehX_embX_cancel (j : Fin n.succ) (i : Fin n):
 
 def homogenization (j : Fin n.succ) (p : K[X,..]n) : (K[X,..]n.succ) :=
   ∑ m ∈ p.support,
-    aeval (embX j) (monomial m (coeff m p)) * (X j)^(p.totalDegree + 1 - degree m)
+    aeval (embX j) (monomial m (coeff m p)) * (X j)^(p.totalDegree - degree m)
+
+theorem isHomogeneous_homogenization (j : Fin n.succ) (p : K[X,..]n)
+    : (p.homogenization j).IsHomogeneous p.totalDegree := by
+  simp [homogenization]
+  apply IsHomogeneous.sum
+  intro i i_in_supp
+  have p_degree_split : p.totalDegree = degree i + (p.totalDegree - degree i) := by
+    rw [←Nat.add_sub_assoc (by apply le_totalDegree i_in_supp), Nat.add_sub_cancel_left]
+  rw [p_degree_split, Nat.add_sub_cancel_left]
+  apply IsHomogeneous.mul
+  . rw [show degree i = 1 * degree i by simp]
+    apply MvPolynomial.IsHomogeneous.aeval
+    . apply isHomogeneous_monomial _ rfl
+    . apply isHomogeneous_embX
+  . apply isHomogeneous_X_pow
 
 theorem dehomo_homo
-    : Function.LeftInverse (@dehomogenization n K _ j) (@homogenization n K _ j) := by
+    : Function.LeftInverse (@dehomogenization n K _ j) (@MvPolynomial.homogenization n K _ j) := by
   simp [Function.LeftInverse, dehomogenization]
   intro p
-  simp [homogenization, dehX]
+  simp [MvPolynomial.homogenization, dehX]
   conv =>
     arg 2
     rw [as_sum p]
@@ -306,8 +329,6 @@ def 𝔸chart (j : Fin n.succ) (V : Variety K n) : 𝔸.Variety K n where
 
 end Variety
 
-def 𝔸.AlgSet.ℙclosure
-
 def 𝕀 (V : AlgSet K n) : HomogeneousIdeal (K[X,..] n+1 homo) :=
   let fs := {f : K[X,..]n+1
     | ∃ i : ℕ, MvPolynomial.IsHomogeneous f i
@@ -393,4 +414,21 @@ abbrev AlgSet.coordRing (V : AlgSet K n) : Type ℓ :=
 abbrev Variety.coordRing (V : Variety K n) : Type ℓ :=
   V.toAlgSet.coordRing
 
+def AlgSet.affinePart (V : ℙ.AlgSet K n) (j : Fin n.succ) : 𝔸.AlgSet K n where
+  carrier := ℙ.Part.to𝔸 '' {⟨P, _⟩ : ℙ.Part K n j | P ∈ V}
+  gen_by_ideal := sorry
+
+def AlgSet.cotSpace {V : AlgSet K n} {j : Fin n.succ} {P : ℙ.Part K n j}
+    (PinV : P.to𝔸 ∈ V.affinePart j) : Type ℓ :=
+  (V.affinePart j).cotSpace PinV
+
 end ℙ
+
+def 𝔸.AlgSet.projClosure (V : 𝔸.AlgSet K n) (j : Fin n.succ) : ℙ.AlgSet K n :=
+  ℙ.𝕍 ⟨Ideal.span (MvPolynomial.homogenization j '' (𝔸.𝕀 V.1)), (by
+    apply Ideal.homogeneous_span
+    intro f ⟨f', _, homo_f'_eq_f⟩
+    simp [SetLike.Homogeneous, ←homo_f'_eq_f]
+    exists f'.totalDegree
+    apply isHomogeneous_homogenization
+  )⟩
